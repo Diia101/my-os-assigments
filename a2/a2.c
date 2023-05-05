@@ -4,7 +4,33 @@
 #include <sys/wait.h>
 #include "a2_helper.h"
 #include <stdlib.h>
+#include <pthread.h>
 
+
+void *thread_function(void* arg)
+{
+    int thread_no = *(int*)arg;
+    info(BEGIN, 9, thread_no);
+    // do something in the thread
+    info(END, 9, thread_no);
+    return NULL;
+}
+void *thread_function_49(void* arg)
+{
+    int thread_no = *(int*)arg;
+    info(BEGIN, 5, thread_no);
+    // do something in the thread
+    info(END, 5, thread_no);
+    return NULL;
+}
+void *thread_function_6(void* arg)
+{
+    int thread_no = *(int*)arg;
+    info(BEGIN, 4, thread_no);
+    // do something in the thread
+    info(END, 4, thread_no);
+    return NULL;
+}
 
 int main(){
     init();
@@ -36,7 +62,18 @@ int main(){
             if (fork() == 0) {
                 //  start
                 info(BEGIN, 9, 0);
-                // end
+                
+                 pthread_t threads[5];
+                int thread_args[5];
+                for (int i = 0; i < 5; i++) {
+                    thread_args[i] = i+1;
+                    pthread_create(&threads[i], NULL, thread_function, &thread_args[i]);
+                }
+                // wait for threads to finish
+                for (int i = 0; i < 5; i++) {
+                    pthread_join(threads[i], NULL);
+                }
+            //end
                 info(END, 9, 0);
                 exit(0);
             }
@@ -61,6 +98,16 @@ int main(){
             // start
             info(BEGIN, 4, 0);
             // end
+             pthread_t threads[5];
+                int thread_args[6];
+                for (int i = 0; i < 6; i++) {
+                    thread_args[i] = i+1;
+                    pthread_create(&threads[i], NULL, thread_function_6, &thread_args[i]);
+                }
+                // wait for threads to finish
+                for (int i = 0; i < 6; i++) {
+                    pthread_join(threads[i], NULL);
+                }
             info(END, 4, 0);
             exit(0);
         }
@@ -72,6 +119,16 @@ int main(){
             // start
             info(BEGIN, 5, 0);
             // end
+             pthread_t threads[49];
+                int thread_args[49];
+                for (int i = 0; i < 49; i++) {
+                    thread_args[i] = i+1;
+                    pthread_create(&threads[i], NULL, thread_function_49, &thread_args[i]);
+                }
+                // wait for threads to finish
+                for (int i = 0; i < 49; i++) {
+                    pthread_join(threads[i], NULL);
+                }
             info(END, 5, 0);
             exit(0);
         }
