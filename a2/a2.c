@@ -5,6 +5,9 @@
 #include "a2_helper.h"
 #include <stdlib.h>
 #include <pthread.h>
+#include <semaphore.h>
+
+sem_t sem;
 
 
 void *thread_function(void* arg)
@@ -15,14 +18,21 @@ void *thread_function(void* arg)
     info(END, 9, thread_no);
     return NULL;
 }
+
+
+
 void *thread_function_49(void* arg)
 {
     int thread_no = *(int*)arg;
+     sem_wait(&sem);
     info(BEGIN, 5, thread_no);
     // do something in the thread
     info(END, 5, thread_no);
+    sem_post(&sem);
     return NULL;
 }
+
+
 void *thread_function_6(void* arg)
 {
     int thread_no = *(int*)arg;
@@ -36,7 +46,7 @@ int main(){
     init();
 
     info(BEGIN, 1, 0);
-
+  sem_init(&sem,0,6);
     // creez procesul 2
     if (fork() == 0) {
         //  start
@@ -62,14 +72,14 @@ int main(){
             if (fork() == 0) {
                 //  start
                 info(BEGIN, 9, 0);
-                
+                //creez threadurile
                  pthread_t threads[5];
                 int thread_args[5];
                 for (int i = 0; i < 5; i++) {
                     thread_args[i] = i+1;
                     pthread_create(&threads[i], NULL, thread_function, &thread_args[i]);
                 }
-                // wait for threads to finish
+                // asteptam sa se termine threadurile
                 for (int i = 0; i < 5; i++) {
                     pthread_join(threads[i], NULL);
                 }
@@ -98,13 +108,15 @@ int main(){
             // start
             info(BEGIN, 4, 0);
             // end
+
+            //creez threadurile
              pthread_t threads[5];
                 int thread_args[6];
                 for (int i = 0; i < 6; i++) {
                     thread_args[i] = i+1;
                     pthread_create(&threads[i], NULL, thread_function_6, &thread_args[i]);
                 }
-                // wait for threads to finish
+                // asteptam sa se termine threadurile
                 for (int i = 0; i < 6; i++) {
                     pthread_join(threads[i], NULL);
                 }
@@ -114,21 +126,25 @@ int main(){
         //asteptam sa se termine copii lui P4
          wait(NULL);
 
+
         // creez procesul P5
         if (fork() == 0) {
             // start
             info(BEGIN, 5, 0);
             // end
+
+            //creez threadurile
              pthread_t threads[49];
                 int thread_args[49];
                 for (int i = 0; i < 49; i++) {
                     thread_args[i] = i+1;
                     pthread_create(&threads[i], NULL, thread_function_49, &thread_args[i]);
                 }
-                // wait for threads to finish
+                // astpetam sa se termine threadurile
                 for (int i = 0; i < 49; i++) {
                     pthread_join(threads[i], NULL);
                 }
+                sem_destroy(&sem);
             info(END, 5, 0);
             exit(0);
         }
