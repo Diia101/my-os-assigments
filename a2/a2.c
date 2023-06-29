@@ -1,30 +1,79 @@
 #include <stdio.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "a2_helper.h"
-#include <stdlib.h>
 #include <pthread.h>
 #include <semaphore.h>
-
+#include <stdlib.h>
 sem_t sem;
-
-
+sem_t *s1,*s2;
+int k=0;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond1 = PTHREAD_COND_INITIALIZER;
 void *thread_function(void* arg)
 {
     int thread_no = *(int*)arg;
-    info(BEGIN, 9, thread_no);
-    // do something in the thread
-    info(END, 9, thread_no);
+     pthread_mutex_lock(&lock);
+
+      if(thread_no==2)
+    {
+        if(k==1)
+            info(BEGIN,9,thread_no);
+        else
+        {
+            pthread_cond_wait(&cond,&lock);
+            info(BEGIN, 9, thread_no);
+        }
+    }
+    // else if(thread_no==3)
+    // {
+    //         sem_wait(s1);
+    //         info(BEGIN, 9, thread_no);
+    // }
+    else if(thread_no==5)
+    {
+            info(BEGIN, 9, thread_no);
+            pthread_cond_signal(&cond);
+            k=1;
+    }else 
+         info(BEGIN, 9, thread_no);
+    
+ if(thread_no==5)
+    {
+        pthread_cond_wait(&cond1,&lock);
+        info(END, 9, thread_no);
+    }
+    else if(thread_no==3)
+    {
+          info(END, 9, thread_no);
+          sem_post(s2);
+         
+    }
+    else if(thread_no==2)
+    { 
+        info(END, 9, thread_no);
+        pthread_cond_signal(&cond1);
+    }
+    else
+       info(END, 9, thread_no);
+        
+        
+    pthread_mutex_unlock(&lock);
+
     return NULL;
 }
 
-
+//• Threadul T9.5 trebuie s˘a ˆınceap˘a ˆınainte ca T9.2 s˘a ˆınceap˘a s, i trebuie s˘a
+//se ˆıncheie dup˘a terminarea acestuia.
 
 void *thread_function_49(void* arg)
 {
     int thread_no = *(int*)arg;
      sem_wait(&sem);
+
     info(BEGIN, 5, thread_no);
     // do something in the thread
     info(END, 5, thread_no);
@@ -36,9 +85,20 @@ void *thread_function_49(void* arg)
 void *thread_function_6(void* arg)
 {
     int thread_no = *(int*)arg;
-    info(BEGIN, 4, thread_no);
-    // do something in the thread
-    info(END, 4, thread_no);
+    if(thread_no==2)
+    {  
+        sem_wait(s2);
+        info(BEGIN, 4, thread_no);
+    }
+    else
+        info(BEGIN, 4, thread_no);
+    // if (thread_no== 3) {
+      
+    //     info(END, 4, thread_no);
+    //       sem_post(s1); 
+    //  }
+    //  else 
+     info(END, 4, thread_no);
     return NULL;
 }
 
@@ -46,7 +106,14 @@ int main(){
     init();
 
     info(BEGIN, 1, 0);
+      s1 = sem_open("/s1", O_CREAT, 0644, 0);
+    s2 = sem_open("/s2", O_CREAT, 0644, 0);
+    pthread_mutex_init(&lock, NULL);
+  
+    pthread_cond_init(&cond, NULL);
+    pthread_cond_init(&cond1,NULL);
   sem_init(&sem,0,6);
+
     // creez procesul 2
     if (fork() == 0) {
         //  start
@@ -151,7 +218,11 @@ int main(){
 
         //asteptam sa se termine copii lui P9
         wait(NULL);
-
+            sem_close(s1);
+    sem_unlink("/s1");
+    sem_close(s2);
+    sem_unlink("/s2");
+    
         // creez procesul P7
         if (fork() == 0) {
             // start
