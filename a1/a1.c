@@ -3,6 +3,11 @@
 #include <dirent.h>
 #include <string.h>
 #include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include<limits.h>
 
 #define MAGIC "0T"
 #define MIN_VERSION 47
@@ -12,92 +17,180 @@
 
 
 
-typedef struct {
-    char name[19];
-    char type;
-    int offset;
-    int size;
-} section_header;
+// typedef struct {
+//     char name[19];
+//     char type;
+//     int offset;
+//     int size;
+// } section_header;
 
-typedef struct {
-    char magic[3];
-    short header_size;
-    char version;
-    char no_of_sections;
-    section_header *section_headers;
-} sf_header;
+// typedef struct {
+//     char magic[3];
+//     short header_size;
+//     char version;
+//     char no_of_sections;
+//     section_header *section_headers;
+// } sf_header;
 
-int is_valid_sf(sf_header *header) {
-    // verific magic
-    if (strncmp(header->magic, MAGIC, 2) != 0) {
-        printf("ERROR\nwrong magic\n");
-        return 0;
+// int is_valid_sf(sf_header *header) {
+//     // verific magic
+//     if (strncmp(header->magic, MAGIC, 2) != 0) {
+//         printf("ERROR\nwrong magic\n");
+//         return 0;
+//     }
+
+//     // verific versiunea
+//     if (header->version < MIN_VERSION || header->version > MAX_VERSION) {
+//         printf("ERROR\nwrong version\n");
+//         return 0;
+//     }
+
+//     // verific nr sectiunilor
+//     if (header->no_of_sections < MIN_SECTIONS || header->no_of_sections > MAX_SECTIONS) {
+//         printf("ERROR\nwrong sect_nr\n");
+//         return 0;
+//     }
+
+//     //verific tipul sectiunii
+//     char valid_types[] = {76, 27, 77, 79, 93};
+//     int i, j, valid;
+//     for (i = 0; i < header->no_of_sections; i++) {
+//         valid = 0;
+//         for (j = 0; j < 5; j++) {
+//             if (header->section_headers[i].type == valid_types[j]) {
+//                 valid = 1;
+//                 break;
+//             }
+//         }
+//         if (!valid) {
+//             printf("ERROR\nwrong sect_types\n");
+//             return 0;
+//         }
+//     }
+
+//     return 1;
+// }
+
+int parse_sf_file(const char *file_path) {
+    
+    int variabila=0;
+    int fd= open(file_path, O_RDONLY);
+    if (fd < 0) {
+      printf("ERROR\nfile not found\n");
+        return -1;
     }
 
-    // verific versiunea
-    if (header->version < MIN_VERSION || header->version > MAX_VERSION) {
-        printf("ERROR\nwrong version\n");
-        return 0;
-    }
+  lseek(fd, 0, SEEK_SET);
+    unsigned char magic1;
+    unsigned char magic2;
 
-    // verific nr sectiunilor
-    if (header->no_of_sections < MIN_SECTIONS || header->no_of_sections > MAX_SECTIONS) {
-        printf("ERROR\nwrong sect_nr\n");
-        return 0;
-    }
+    read (fd, &magic1, 1);
+    read (fd, &magic2, 1);
+   
 
-    //verific tipul sectiunii
-    char valid_types[] = {76, 27, 77, 79, 93};
-    int i, j, valid;
-    for (i = 0; i < header->no_of_sections; i++) {
-        valid = 0;
-        for (j = 0; j < 5; j++) {
-            if (header->section_headers[i].type == valid_types[j]) {
-                valid = 1;
-                break;
-            }
+    unsigned short header_size1;
+    read(fd, &header_size1, 2);
+
+    unsigned short version1;
+    read(fd, &version1, 2);
+   
+
+    unsigned short no_of_sections1;
+    read(fd, &no_of_sections1, 1);
+
+     
+
+    
+    for(int i=0;i<no_of_sections1;i++)
+    {
+        char section_name[19];
+        read(fd, &section_name, 18);
+        section_name[18]= '\0';
+        unsigned char section_type;
+        read(fd, &section_type, 1);
+        unsigned int section_offset;
+        read(fd, &section_offset, 4);
+        unsigned int section_size;
+        read(fd, &section_size, 4);
+  if (section_type != 76 && section_type != 27 && section_type != 77 && section_type != 79 && section_type != 93 ) {
+            variabila=1;
         }
-        if (!valid) {
-            printf("ERROR\nwrong sect_types\n");
-            return 0;
-        }
+        
     }
 
-    return 1;
-}
 
-int parse_sf_file(char *file_path) {
-    FILE *file = fopen(file_path, "rb");
-    if (file == NULL) {
+
+
+    if(variabila==0)
+    {
+        int fd= open(file_path, O_RDONLY);
+    if (fd < 0) {
         printf("ERROR\nfile not found\n");
         return -1;
     }
 
-    // citesc header
-    sf_header header;
-    fread(&header, sizeof(sf_header), 1, file);
+  lseek(fd, 0, SEEK_SET);
+    unsigned char magic1;
+    unsigned char magic2;
 
-
-    //verific daca fisierul e sf valid
-    if (!is_valid_sf(&header)) {
-        fclose(file);
+    read (fd, &magic1, 1);
+    read (fd, &magic2, 1);
+    if(magic1 != 48 && magic2!= 84)
+    {
+        printf("ERROR\nwrong magic\n");
+        close(fd);
         return -1;
     }
 
+    unsigned short header_size1;
+    read(fd, &header_size1, 2);
 
-    printf("SUCCESS\n");
-    printf("version=%d\n", header.version);
-    printf("nr_sections=%d\n", header.no_of_sections);
-
-    // afisez section headers
-    int i;
-    for (i = 0; i < header.no_of_sections; i++) {
-        printf("section%d: %s %d %d\n", i+1, header.section_headers[i].name, 
-               header.section_headers[i].type, header.section_headers[i].size);
+    unsigned short version1;
+    read(fd, &version1, 2);
+    if( version1< 47 || version1 > 130)
+    {
+        printf("ERROR\nwrong version\n");
+        close(fd);
+        return -1;
     }
 
-    fclose(file);
+    unsigned short no_of_sections1;
+    read(fd, &no_of_sections1, 1);
+
+     if( no_of_sections1 < 6 || no_of_sections1 > 16)
+    {
+        printf("ERROR\nwrong sect_nr\n");
+        close(fd);
+        return -1;
+    }
+
+    printf("SUCCESS\nversion=%d\nnr_sections=%d\n",version1, no_of_sections1);
+
+    for(int i=0;i<no_of_sections1;i++)
+    {
+        char section_name[19];
+        read(fd, &section_name, 18);
+        section_name[18]= '\0';
+        unsigned char section_type;
+        read(fd, &section_type, 1);
+        unsigned int section_offset;
+        read(fd, &section_offset, 4);
+        unsigned int section_size;
+        read(fd, &section_size, 4);
+
+        printf("section%d: %s %d %d\n",i+1,section_name,section_type,section_size);
+    }
+    }
+    else {
+        printf("ERROR\nwrong sect_types\n");
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+
     return 0;
+
 }
 
 
@@ -167,9 +260,9 @@ int main(int argc, char **argv){
                 }
             }
 
-            if (path != NULL) {
+            if (path != NULL) { 
+                printf("SUCCESS\n");
                 if (list_dir(path, recursive, name_starts_with, has_perm_execute) == 0) {
-                    printf("SUCCESS\n");
                     return 0;
                 } else {
                     return 1;
@@ -200,4 +293,3 @@ char *file_path = NULL;
     // parse SF file
     return parse_sf_file(file_path);
 }
-
