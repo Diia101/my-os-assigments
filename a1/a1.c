@@ -86,17 +86,37 @@ int parse_sf_file(const char *file_path) {
 
     read (fd, &magic1, 1);
     read (fd, &magic2, 1);
-   
+      if(magic1 != 48 && magic2!= 84)
+    {
+        printf("ERROR\nwrong magic\n");
+        close(fd);
+        return -1;
+    }
 
     unsigned short header_size1;
     read(fd, &header_size1, 2);
+    
 
     unsigned short version1;
     read(fd, &version1, 2);
    
+  if( version1< 47 || version1 > 130)
+    {
+        printf("ERROR\nwrong version\n");
+        close(fd);
+        return -1;
+    }
 
     unsigned short no_of_sections1;
     read(fd, &no_of_sections1, 1);
+
+     if( no_of_sections1 < 6 || no_of_sections1 > 16)
+    {
+        printf("ERROR\nwrong sect_nr\n");
+        close(fd);
+        return -1;
+    }
+
 
      
 
@@ -118,7 +138,11 @@ int parse_sf_file(const char *file_path) {
         
     }
 
-
+    if(variabila==1)  {
+        printf("ERROR\nwrong sect_types\n");
+        close(fd);
+        return -1;
+    }
 
 
     if(variabila==0)
@@ -127,42 +151,24 @@ int parse_sf_file(const char *file_path) {
     if (fd < 0) {
         printf("ERROR\nfile not found\n");
         return -1;
-    }
+    } 
 
-  lseek(fd, 0, SEEK_SET);
-    unsigned char magic1;
-    unsigned char magic2;
+ lseek(fd, 0, SEEK_SET);
+    // unsigned char magic1;
+    // unsigned char magic2;
 
     read (fd, &magic1, 1);
     read (fd, &magic2, 1);
-    if(magic1 != 48 && magic2!= 84)
-    {
-        printf("ERROR\nwrong magic\n");
-        close(fd);
-        return -1;
-    }
+ 
 
-    unsigned short header_size1;
+    // unsigned short header_size1;
     read(fd, &header_size1, 2);
 
-    unsigned short version1;
+    // unsigned short version1;
     read(fd, &version1, 2);
-    if( version1< 47 || version1 > 130)
-    {
-        printf("ERROR\nwrong version\n");
-        close(fd);
-        return -1;
-    }
-
-    unsigned short no_of_sections1;
+  
+    // unsigned short no_of_sections1;
     read(fd, &no_of_sections1, 1);
-
-     if( no_of_sections1 < 6 || no_of_sections1 > 16)
-    {
-        printf("ERROR\nwrong sect_nr\n");
-        close(fd);
-        return -1;
-    }
 
     printf("SUCCESS\nversion=%d\nnr_sections=%d\n",version1, no_of_sections1);
 
@@ -181,11 +187,7 @@ int parse_sf_file(const char *file_path) {
         printf("section%d: %s %d %d\n",i+1,section_name,section_type,section_size);
     }
     }
-    else {
-        printf("ERROR\nwrong sect_types\n");
-        close(fd);
-        return -1;
-    }
+   
 
     close(fd);
 
@@ -203,7 +205,7 @@ int list_dir(char *path, int recursive, char *name_starts_with, int has_perm_exe
 
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
-        char full_path[1024];
+        char full_path[2048];
        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
             continue;
