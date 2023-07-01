@@ -13,6 +13,10 @@ int k=0;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond1 = PTHREAD_COND_INITIALIZER;
+
+//pthread_cond_t cond2= PTHREAD_COND_INITIALIZER;
+
+
 void *thread_function(void* arg)
 {
     int thread_no = *(int*)arg;
@@ -66,8 +70,7 @@ void *thread_function(void* arg)
     return NULL;
 }
 
-//• Threadul T9.5 trebuie s˘a ˆınceap˘a ˆınainte ca T9.2 s˘a ˆınceap˘a s, i trebuie s˘a
-//se ˆıncheie dup˘a terminarea acestuia.
+//• threadul T9.5 trebuie sa inceapa inainte de T9.2 si se termina dupa ce termina el
 
 void *thread_function_49(void* arg)
 {
@@ -75,13 +78,12 @@ void *thread_function_49(void* arg)
      sem_wait(&sem);
 
     info(BEGIN, 5, thread_no);
-    // do something in the thread
     info(END, 5, thread_no);
     sem_post(&sem);
     return NULL;
 }
 
-
+//fac threadurile lui 4
 
 void *thread_function_6(void* arg)
 {
