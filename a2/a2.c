@@ -72,15 +72,70 @@ void *thread_function(void* arg)
 
 //• threadul T9.5 trebuie sa inceapa inainte de T9.2 si se termina dupa ce termina el
 
+pthread_cond_t process5_thread11 = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t process5_thread11_lock = PTHREAD_MUTEX_INITIALIZER;
+int thread11_started = 0;
+int process5_threads_inside = 0;
+sem_t thread11_sem;
+int thread11_ended = 0;
+
 void *thread_function_49(void* arg)
 {
     int thread_no = *(int*)arg;
-     sem_wait(&sem);
 
-    info(BEGIN, 5, thread_no);
-    info(END, 5, thread_no);
-    sem_post(&sem);
-    return NULL;
+    if (thread_no != 11) {
+	//asteapta start thread 11
+	pthread_mutex_lock(&process5_thread11_lock);
+    	while (thread11_started == 0)
+	    pthread_cond_wait(&process5_thread11, &process5_thread11_lock);
+	pthread_mutex_unlock(&process5_thread11_lock);
+	
+	//intra in bariera, maxim 6 threaduri
+	sem_wait(&sem);
+	info(BEGIN, 5, thread_no);
+	
+	pthread_mutex_lock(&process5_thread11_lock);
+	if (thread11_ended == 0) {
+		process5_threads_inside++;
+
+		//daca sunt 5 threaduri, anunta threadul 11
+		if (process5_threads_inside == 5) {
+			sem_post(&thread11_sem);
+		}
+
+		//wait for thread11 to end
+    		while (thread11_ended == 0)
+		    pthread_cond_wait(&process5_thread11, &process5_thread11_lock);
+	}
+	pthread_mutex_unlock(&process5_thread11_lock);
+
+        info(END, 5, thread_no);
+        sem_post(&sem);
+    } else {
+	//threadul 11 porneste primul
+	info(BEGIN, 5, thread_no);
+	thread11_started = 1;
+	//intra in bariera si deblocheaza restul
+	sem_wait(&sem);
+
+	pthread_mutex_lock(&process5_thread11_lock);
+	pthread_cond_broadcast(&process5_thread11);
+	pthread_mutex_unlock(&process5_thread11_lock);
+
+	//asteapta sa se umple regiunea bariera
+	sem_wait(&thread11_sem);
+	info(END, 5, thread_no);
+	thread11_ended = 1;
+	//elibereaza restul threadurilor
+	pthread_mutex_lock(&process5_thread11_lock);
+	pthread_cond_broadcast(&process5_thread11);
+	pthread_mutex_unlock(&process5_thread11_lock);
+
+	sem_post(&sem);
+    }
+
+
+   return NULL;
 }
 
 //fac threadurile lui 4
@@ -117,6 +172,11 @@ int main(){
     pthread_cond_init(&cond, NULL);
     pthread_cond_init(&cond1,NULL);
   sem_init(&sem,0,6);
+
+
+  sem_init(&thread11_sem,0,0);
+
+
 
     // creez procesul 2
     if (fork() == 0) {
@@ -216,6 +276,7 @@ int main(){
                     pthread_join(threads[i], NULL);
                 }
                 sem_destroy(&sem);
+  		sem_destroy(&thread11_sem);
             info(END, 5, 0);
             exit(0);
         }
