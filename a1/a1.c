@@ -225,7 +225,7 @@ int list_dir(char *path, int recursive, char *name_starts_with, int has_perm_exe
            
             continue;
         }
-        
+         
         printf("%s\n", full_path);
     }
     closedir(dir);
