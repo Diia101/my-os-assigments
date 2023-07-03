@@ -309,7 +309,7 @@ int main(){
             info(END, 7, 0);
             exit(0);
         }
-
+ 
         //asteptam sa se termine copii lui P7
         wait(NULL);
 
